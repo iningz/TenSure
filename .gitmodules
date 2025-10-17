@@ -1,0 +1,7 @@
+[submodule "external/taco"]
+	path = external/taco
+	url = https://github.com/tensor-compiler/taco.git
+	branch = master
+[submodule "external/nlohmann_json"]
+	path = external/nlohmann_json
+	url = https://github.com/nlohmann/json.git
