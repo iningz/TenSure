@@ -211,39 +211,41 @@ void ensure_directory_exists(const std::string& path)
     }
 }
 
-bool generate_kernel(vector<tsTensor>& tensors, vector<string> computations, vector<string> dataFileNames, string file_name)
+bool generate_ref_kernel(const vector<tsTensor>& tensors, const vector<string>& computations, const vector<string>& dataFileNames, string file_name)
 {
     if (tensors.size() != dataFileNames.size()) return false;
-
+    cout << "SDSDS 1" << endl;
     tsKernel kernel;
     for (size_t i = 0; i < tensors.size(); i++)
     {
+        cout << "SDSDS 2" << i << endl;
         auto &tensor = tensors[i];
         kernel.tensors.push_back(tensor);
         kernel.dataFileNames.insert({string(1,tensor.name),dataFileNames[i]});
     }
 
-    for (auto& computation : computations)
+    for (const auto& computation : computations)
     {
+        cout << "SDSDS 3" << computation << endl;
         tsComputation comp;
         comp.expressions = computation;
         kernel.computations.push_back(comp);
     }
 
     // Atomic write
-    std::string tmp_name = file_name + ".tmp";
-
+    string tmp_name = file_name + ".tmp";
+    cout << "SDSDS 5" << endl;
     try
     {
         kernel.saveJson(tmp_name); // write to a temporary file first
-        std::filesystem::rename(tmp_name, file_name); // atomic replacement
+        filesystem::rename(tmp_name, file_name); // atomic replacement
     }
     catch(const std::exception& e)
     {
-        std::cerr << "generate_kernel failed: " << e.what() << std::endl;
+        cerr << "generate_kernel failed: " << e.what() << std::endl;
         // Cleanupo temp if partially written
-        std::error_code ec;
-        std::filesystem::remove(tmp_name, ec);
+        error_code ec;
+        filesystem::remove(tmp_name, ec);
         return false;
     }
     

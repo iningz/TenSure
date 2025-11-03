@@ -99,7 +99,7 @@ void ensure_directory_exists(const std::string& path);
  * @param file_name file name to store the kernel as JSON.
  * @return bool true of the kernel file has been successfully created, false otherwise.
  */
-bool generate_kernel(vector<tsTensor>& tensors, vector<string> computations, vector<string> dataFileNames, string file_name);
+bool generate_ref_kernel(const vector<tsTensor>& tensors, const vector<string>& computations, const vector<string>& dataFileNames, string file_name);
 
 
 vector<vector<string>> generate_all_formats(int rank);

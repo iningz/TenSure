@@ -28,6 +28,7 @@ add_custom_target(build_externals
 # ------------------------------
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
+    ${TACO_DIR}/include
     ${JSON_DIR}/include
 )
 
@@ -35,17 +36,15 @@ include_directories(
 # Source files for main fuzzer
 # ------------------------------
 file(GLOB_RECURSE FUZZER_SRC ${CMAKE_SOURCE_DIR}/src/*.cpp)
-list(FILTER FUZZER_SRC EXCLUDE REGEX ".*/taco_wrapper/.*")  # exclude backend .cpp files
+list(FILTER FUZZER_SRC EXCLUDE REGEX ".*/taco_wrapper/.*") # exclude backend .cpp files
 list(FILTER FUZZER_SRC EXCLUDE REGEX ".*/finch_wrapper/.*") # exclude other backends
 
 # ------------------------------
-# Build main executable (no backend linkage)
+# Build main executable
 # ------------------------------
 add_executable(${PROJECT_NAME} ${FUZZER_SRC})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${TACO_DIR}/build/lib/libtaco.so)
 add_dependencies(${PROJECT_NAME} build_externals)
-
-# Allow main executable to export symbols to plugins if needed
-set_target_properties(${PROJECT_NAME} PROPERTIES ENABLE_EXPORTS ON)
 
 # ------------------------------
 # Selective backend building options
@@ -54,35 +53,22 @@ option(BUILD_TACO "Build TACO backend" ON)
 option(BUILD_FINCH "Build Finch backend" OFF)
 
 # ------------------------------
-# TACO backend
+# Build TACO backend as shared library
 # ------------------------------
-if(BUILD_TACO)
-    file(GLOB_RECURSE TACO_SRC
-        ${CMAKE_SOURCE_DIR}/src/taco_wrapper/*.cpp
-    )
+file(GLOB_RECURSE TACO_SRC
+    ${CMAKE_SOURCE_DIR}/src/taco_wrapper/*.cpp
+)
 
-    add_library(taco_wrapper SHARED ${TACO_SRC})
-    target_include_directories(taco_wrapper PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
-        ${TACO_DIR}/include
-    )
+add_library(taco_wrapper SHARED ${TACO_SRC})
+target_include_directories(taco_wrapper PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
-    # Try to locate libtaco.so automatically
-    find_library(TACO_LIB taco PATHS
-        ${TACO_DIR}/build/lib
-        /usr/local/lib
-        /usr/lib
-        /opt/taco/lib
-    )
-
-    if(NOT TACO_LIB)
-        message(FATAL_ERROR "TACO library not found. Please set TACO_LIB manually.")
-    else()
-        message(STATUS "Found TACO library at ${TACO_LIB}")
-    endif()
-
-    target_link_libraries(taco_wrapper PRIVATE ${TACO_LIB})
+# Link TACO library (so symbols are available when dlopen happens)
+find_library(TACO_LIB taco PATHS /usr/local/lib /opt/taco/lib)
+if(NOT TACO_LIB)
+    message(FATAL_ERROR "TACO library not found. Please set TACO_LIB path manually.")
 endif()
+
+target_link_libraries(taco_wrapper PRIVATE ${TACO_LIB})
 
 # ------------------------------
 # Finch backend

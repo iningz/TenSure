@@ -26,3 +26,10 @@ make -j8
 ```bash
 ./TenSure
 ```
+
+
+
+mkdir build2 && cd build2
+cmake .. -DBUILD_TACO=ON
+make -j$(nproc)
+./TenSure --backend ./libtaco_wrapper.so
