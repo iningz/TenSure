@@ -9,23 +9,38 @@
 
 bool TacoBackend::generate_kernel(const vector<string>& mutated_kernel_file_names, const fs::path& output_dir) {
     // Call your existing executor.cpp function
-    for (auto &mutated_file_name : mutated_kernel_file_names) {
+    for (int i = 0; i < mutated_kernel_file_names.size(); i++) {
+        auto &mutated_file_name = mutated_kernel_file_names[i];
         fs::path p(mutated_file_name);
         fs::path taco_kernel_file = output_dir / (p.stem());
-        // cout << "taco_kernel_file: " << taco_kernel_file << endl;
         fs::create_directories(taco_kernel_file);
-        // std::cout << taco_kernel_file << std::endl;
         tsKernel tskernel;
         tskernel.loadJson(mutated_file_name);
-        taco_wrapper::generate_taco_kernel(tskernel, taco_kernel_file);
+        if (i==0)
+        {
+            taco_wrapper::generate_taco_kernel(tskernel, taco_kernel_file, {(taco_kernel_file / "results.tns"), (p.parent_path() / "data" / "ref_out" / "results.tns")});
+        } else {
+
+            taco_wrapper::generate_taco_kernel(tskernel, taco_kernel_file, {(taco_kernel_file / "results.tns")});
+        }
+        fs::remove(p);
     }
     
     return true;
 }
 
-bool TacoBackend::execute_kernel(const string& kernelPath, const string& outputDir) {
+int TacoBackend::execute_kernel(const fs::path& kernelPath, const fs::path& outputDir) {
     // Call your existing executor.cpp function
-    return taco_wrapper::run_kernel(kernelPath);
+    std::filesystem::path taco_path = std::filesystem::absolute(std::filesystem::current_path() / "../external/taco");
+    std::filesystem::path abs_srcPath = std::filesystem::absolute(std::filesystem::current_path() / kernelPath);
+    std::filesystem::path abs_outPath = std::filesystem::absolute(std::filesystem::current_path() / kernelPath.parent_path());
+
+    std::filesystem::path exe_path = abs_outPath / abs_srcPath.stem();
+    exe_path.replace_extension(".out");
+    
+    int ret = taco_wrapper::run_kernel(abs_srcPath.string(), exe_path.string(), taco_path.string());
+
+    return ret;
 }
 
 bool TacoBackend::compare_results(const string& refDir, const string& testDir) {

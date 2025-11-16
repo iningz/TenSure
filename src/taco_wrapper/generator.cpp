@@ -14,19 +14,18 @@ TacoTensor toTacoTensor(const tsTensor& t, const string& dataFilename)
     return tacoT;
 }
 
-bool generate_taco_kernel(const tsKernel& kernel, const fs::path& outFile) {
+bool generate_taco_kernel(const tsKernel& kernel, const fs::path& out_file, std::vector<fs::path> results_file) {
     try {
         // generate TACO program string
-        fs::create_directories(outFile);
-        string results_file = outFile / "result.tns";
+        fs::create_directories(out_file);
         string program_code = generate_program(kernel, results_file);
 
         // atomic write
-        string tmp_name = outFile / ((outFile.parent_path().stem().string()) + ".tmp");
+        string tmp_name = out_file / ((out_file.parent_path().stem().string()) + ".tmp");
         ofstream ofs(tmp_name);
         ofs << program_code;
         ofs.close();
-        fs::rename(tmp_name, (outFile / ((outFile.parent_path().stem().string()) + ".cpp")).string()); // atomic replacement
+        fs::rename(tmp_name, (out_file / ((out_file.parent_path().stem().string()) + ".cpp")).string()); // atomic replacement
     } catch (const exception& e) {
         cerr << "TacoBackend::generate_kernel failed: " << e.what() << endl;
         return false;
@@ -35,7 +34,7 @@ bool generate_taco_kernel(const tsKernel& kernel, const fs::path& outFile) {
     return true;
 }
 
-string generate_program(const tsKernel &kernel_info, const string &results_file)
+string generate_program(const tsKernel &kernel_info, std::vector<fs::path> results_file)
 {
     int tab_space_count = 4;
     std::string space = "";
@@ -44,7 +43,8 @@ string generate_program(const tsKernel &kernel_info, const string &results_file)
             space += " ";
     }
     ostringstream oss;
-    oss << "#include <iostream>\n#include \"taco.h\"\n\nusing namespace taco;\n\nint main() {\n";
+    oss << "#include <iostream>\n#include <fstream>\n#include <sstream>\n#include <vector>\n#include <string>\n#include <stdexcept>\n#include \"taco.h\"\n\nusing namespace taco;\n\nint read_taco_file(std::string file_name, Tensor<double>& T)\n{\n\tstd::ifstream file(file_name);\n\tif (!file.is_open()) {\n\t\tthrow std::runtime_error(\"Failed to open file: \" + file_name);\n\t}\n\n\t std::string line;\n\twhile (std::getline(file, line)) {\n\t\tif (line.empty() || line[0] == '#') continue;\n\n\t\tstd::istringstream iss(line);\n\t\tstd::vector<double> tokens;\n\t\tdouble tmp;\n\n\twhile (iss >> tmp) {\n\t\t\ttokens.push_back(tmp);\n\t\t}\n\n\t\tif (tokens.size() < 2) {\n\t\t\tthrow std::runtime_error(\"Malformed line: \" + line);\n\t\t}\n\n\t\tstd::vector<int> coord;\n\t\tcoord.reserve(tokens.size() - 1);\n\n\t\tfor (size_t i =0; i < tokens.size() -  1; i++) {\n\t\t\tcoord.push_back(static_cast<int>(tokens[i]));\n\t\t}\n\t\tT.insert(coord, tokens.back());\n\t}\n\treturn 0;\n}\n\nint main() {";
+    
     set<char> indexVar;
     vector<string> tensor_init = {};
     for(size_t i = 0; i < kernel_info.tensors.size(); i++)
@@ -73,9 +73,11 @@ string generate_program(const tsKernel &kernel_info, const string &results_file)
     oss << space << kernel_info.tensors[0].name << ".assemble();\n";
     oss << space << kernel_info.tensors[0].name << ".compute();\n\n";
 
-    oss << space << "write(\"" << results_file << "\", " << kernel_info.tensors[0].name << ");\n\n";
-
-    oss << space << "return 0;\n";
+    for (auto &results_file_path : results_file) {
+        fs::path abs_results_file_path = std::filesystem::absolute(std::filesystem::current_path() / results_file_path);
+        oss << space << "write(\"" << abs_results_file_path.string() << "\", " << kernel_info.tensors[0].name << ");\n";
+    }
+    oss << "\n" << space << "return 0;\n";
 
     oss << "}";
     return oss.str();

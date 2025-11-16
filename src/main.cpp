@@ -37,19 +37,28 @@ std::string timestamp_str() {
 }
 
 // ---------- timeout runner ----------
-template<typename F>
-int run_with_timeout(F f, uint64_t timeout_ms) {
-    auto fut = std::async(std::launch::async, f);
+int run_with_timeout(FuzzBackend* backend, const std::string& kernel_path, const std::string& out_dir, uint64_t timeout_ms)
+{
+    // Define the callable you want to run asynchronously
+    auto task = [backend, kernel_path, out_dir]() -> int {
+        // Example: actually run your kernel
+        return backend->execute_kernel(kernel_path, out_dir);
+    };
+
+    // Launch asynchronously
+    std::future<int> fut = std::async(std::launch::async, task);
+
+    // Wait for completion or timeout
     if (fut.wait_for(std::chrono::milliseconds(timeout_ms)) == std::future_status::ready) {
         try {
-            return fut.get();
-        } catch (const std::exception &e) {
-            std::cerr << "Exception from timed task: " << e.what() << "\n";
-            return -1;
+            return fut.get();  // Get result if finished
+        } catch (const std::exception& e) {
+            std::cerr << "Exception from timed task: " << e.what() << std::endl;
+            return -1;  // Error during execution
         }
     } else {
-        // timed out
-        return -2;
+        std::cerr << "Execution timed out after " << timeout_ms << " ms\n";
+        return -2;  // Timeout
     }
 }
 
@@ -165,7 +174,6 @@ int main(int argc, char* argv[]) {
     fs::path out_root = "fuzz_output";
     fs::path fail_dir = out_root / "failures";
     fs::path corpus_dir = out_root / "corpus";
-    fs::path data_root = out_root / "data";
 
     if (const char* env = getenv("FUZZ_SEED")) seed = std::stoull(env);
     if (const char* env2 = getenv("FUZZ_ITERS")) max_iterations = std::stoull(env2);
@@ -177,7 +185,6 @@ int main(int argc, char* argv[]) {
     fs::create_directories(out_root);
     fs::create_directories(corpus_dir);
     fs::create_directories(fail_dir);
-    fs::create_directories(data_root);
     Logger::instance().setLogFile("fuzzer.log");
 
     // Load backend plugin (target)
@@ -216,7 +223,7 @@ int main(int argc, char* argv[]) {
         try {
             string iter_id = "iter_" + to_string(iter) + "_" + timestamp_str();
             fs::path iter_dir = corpus_dir / iter_id;
-            fs::path iter_data_dir = data_root / iter_id;
+            fs::path iter_data_dir = iter_dir / "data";
             fs::create_directories(iter_dir);
             fs::create_directories(iter_data_dir);
 
@@ -241,15 +248,23 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
-            // // 4) Run reference executor (trusted) once to produce expected outputs
-            // fs::path ref_out_dir = iter_data_dir / "ref_out";
-            // fs::create_directories(ref_out_dir);
-            // int ref_ret = run_with_timeout([&]() {
-            //     try {
-            //         bool ok = ref_backend->execute_kernel(backend_kernel.string(), ref_out_dir.string());
-            //         return ok ? 0 : 1;
-            //     } catch (...) { return -1; }
-            // }, executor_timeout_ms);
+            // 4) Run reference executor (trusted) once to produce expected outputs
+            fs::path ref_out_dir = iter_data_dir / "ref_out";
+            fs::create_directories(ref_out_dir);
+            string ref_kernel_filename = (backend_kernel / "kernel/backend_kernel.cpp");
+            int result = run_with_timeout(target_backend, ref_kernel_filename, "", 4000);
+            // break;
+            if (result!=0)
+            {
+                // most likely a crashing code bug
+                // report the crashing code bug
+                archive_failure_case(iter_data_dir, fail_dir, "Reference run failed or timed out (code " + to_string(result) + ")");
+            } else
+            {
+                // reference execution successfully executed
+                // run the mutations
+                
+            }
 
             // if (ref_ret != 0) {
             //     string reason = "Reference run failed or timed out (code " + to_string(ref_ret) + ")";

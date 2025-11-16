@@ -11,5 +11,5 @@ namespace taco_wrapper
 {
 using namespace std;
 
-bool run_kernel(const string& kernelPath);
+int run_kernel(const string& kernelPath, const string& exe_file_name, const string& tool_path);
 }

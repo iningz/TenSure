@@ -15,9 +15,6 @@ typedef struct TacoTensor {
     vector<TensorFormat> fmt;
     string dataFilename;
 
-    // Constructor
-    // TacoTensor(char n, const vector<char>& indices, const vector<int> dimensions, const vector<TensorFormat>& storageFormat) : name(n), idxs(indices), shape(dimensions), fmt(storageFormat) {}
-
     TacoTensor() {}
 
     // generate initilization string
@@ -38,7 +35,9 @@ typedef struct TacoTensor {
 
         if (dataFilename != "-")
         {
-            oss << tab_space << name << " = " << "read(\"" << dataFilename << "\", Format({" << dataFormat << "}));\n";
+            fs::path datafile(dataFilename);
+            fs::path abs_datafile = std::filesystem::absolute(std::filesystem::current_path() / datafile);
+            oss << tab_space << "read_taco_file(\"" << abs_datafile.string() << "\", " << name << ");";
             oss << tab_space << name << ".pack();\n\n";
         }
         
@@ -46,7 +45,9 @@ typedef struct TacoTensor {
     }
 } TacoTensor;
 
-bool generate_taco_kernel(const tsKernel& kernel, const fs::path& outFile);
-string generate_program(const tsKernel &kernel_info, const string& results_file);
+// bool generate_taco_kernel(const tsKernel& kernel, const fs::path& outFile);
+bool generate_taco_kernel(const tsKernel& kernel, const fs::path& out_file, std::vector<fs::path> results_file);
+string generate_program(const tsKernel &kernel_info, std::vector<fs::path> results_file);
+// string generate_program(const tsKernel &kernel_info, const string& results_file);
 
 }

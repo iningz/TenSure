@@ -11,7 +11,7 @@ struct FuzzBackend {
 
     virtual bool generate_kernel(const vector<string>& mutated_kernel_file_names, const fs::path& output_dir) = 0;
 
-    virtual bool execute_kernel(const string& kernelPath, const string& outputDir) = 0;
+    virtual int execute_kernel(const fs::path& kernelPath, const fs::path& outputDir) = 0;
 
     virtual bool compare_results(const string& refDir, const string& testDir) = 0;
 };

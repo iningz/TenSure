@@ -10,8 +10,7 @@ namespace fs = std::filesystem;
 struct TacoBackend : public FuzzBackend {
     bool generate_kernel(const vector<string>& mutated_kernel_file_names, const fs::path& output_dir) override;
 
-    bool execute_kernel(const string& kernelPath,
-                        const string& outputDir) override;
+    int execute_kernel(const fs::path& kernelPath, const fs::path& outputDir) override;
 
     bool compare_results(const string& refDir,
                          const string& testDir) override;

@@ -132,7 +132,7 @@ tuple<vector<tsTensor>, std::string> generate_random_einsum(int numInputs, int m
 
     // Step 2: Pick some indices as output indices
     vector<char> outputIdx;
-    bernoulli_distribution isOutput(0.3); // ~30% of indices become output
+    bernoulli_distribution isOutput(0.5); // ~50% of indices become output
     for (auto &p : idxCount)
     {
         if (isOutput(gen))
