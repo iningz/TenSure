@@ -78,6 +78,7 @@ vector<string> generate_random_tensor_data(const vector<tsTensor>& tensors, stri
         ofstream out(filename);
         if (!out) {
             cerr << "Error: could not open file " << filename << endl;
+            LOG_WARN("Error: could not open file " + filename);
             // file_name_suffix = (file_name_suffix == "") ? "_2" : (file_name_suffix+file_name_suffix);
             continue;
         }
@@ -94,6 +95,7 @@ vector<string> generate_random_tensor_data(const vector<tsTensor>& tensors, stri
 
         out.close();
         cout << "Saved tensor data: " << filename << endl;
+        LOG_INFO("Generated Tensor Data: "+  filename);
         datafile_names.push_back(filename);
     }
 

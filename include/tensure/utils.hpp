@@ -6,14 +6,15 @@
 #include <map>
 #include <sstream>
 #include <fstream>
-
 #include <filesystem>
 #include <iostream>
-namespace fs = std::filesystem;
 
 #include <nlohmann/json.hpp>
 
 #include "tensure/formats.hpp"
+#include "tensure/logger.hpp"
+
+namespace fs = std::filesystem;
 
 
 

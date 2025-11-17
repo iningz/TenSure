@@ -246,6 +246,7 @@ bool generate_ref_kernel(const vector<tsTensor>& tensors, const vector<string>& 
     catch(const std::exception& e)
     {
         cerr << "generate_kernel failed: " << e.what() << std::endl;
+        LOG_ERROR((std::ostringstream{} << "generate_kernel failed: " << e.what()).str());
         // Cleanupo temp if partially written
         error_code ec;
         filesystem::remove(tmp_name, ec);

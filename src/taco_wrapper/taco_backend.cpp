@@ -1,11 +1,4 @@
 #include "taco_wrapper/taco_backend.hpp"
-#include "taco_wrapper/generator.hpp"
-#include "taco_wrapper/executor.hpp"
-#include "taco_wrapper/comparator.hpp"
-#include <fstream>
-#include <iostream>
-#include <filesystem>
-
 
 bool TacoBackend::generate_kernel(const vector<string>& mutated_kernel_file_names, const fs::path& output_dir) {
     // Call your existing executor.cpp function

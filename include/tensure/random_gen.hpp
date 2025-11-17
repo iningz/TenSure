@@ -1,9 +1,12 @@
+#pragma once
+
 #include <set>
 #include <map>
 #include <random>
 #include <algorithm>
 #include "tensure/formats.hpp"
 #include "tensure/utils.hpp"
+#include "tensure/logger.hpp"
 
 #include <iostream>
 

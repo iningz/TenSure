@@ -1,8 +1,14 @@
 #pragma once
 #include "backends/backend_interface.hpp"
 #include "taco_wrapper/generator.hpp"
+#include "taco_wrapper/executor.hpp"
+#include "taco_wrapper/comparator.hpp"
+
 #include <string>
 #include <vector>
+#include <fstream>
+#include <iostream>
+#include <filesystem>
 
 using namespace std;
 namespace fs = std::filesystem;

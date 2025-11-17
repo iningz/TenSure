@@ -37,7 +37,7 @@ typedef struct TacoTensor {
         {
             fs::path datafile(dataFilename);
             fs::path abs_datafile = std::filesystem::absolute(std::filesystem::current_path() / datafile);
-            oss << tab_space << "read_taco_file(\"" << abs_datafile.string() << "\", " << name << ");";
+            oss << tab_space << "read_taco_file(\"" << abs_datafile.string() << "\", " << name << ");\n";
             oss << tab_space << name << ".pack();\n\n";
         }
         

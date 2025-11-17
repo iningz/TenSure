@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include "tensure/formats.hpp"
+#include <dlfcn.h>
+#include <iostream>
 
 using namespace std;
 namespace fs = std::filesystem;

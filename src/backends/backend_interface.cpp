@@ -1,6 +1,4 @@
 #include "backends/backend_interface.hpp"
-#include <dlfcn.h>
-#include <iostream>
 
 using CreateFn = FuzzBackend*();
 using DestroyFn = void(FuzzBackend*);
