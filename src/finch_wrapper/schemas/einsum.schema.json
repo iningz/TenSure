@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finch-fuzz/schemas/einsum.schema.json",
+  "title": "Einsum Sparse Kernel Specification",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": {
+    "$ref": "#/$defs/kernel_def"
+  },
+  "$defs": {
+    "kernel_def": {
+      "type": "object",
+      "properties": {
+        "desc": {
+          "type": "string"
+        },
+        "einsum": {
+          "type": "string",
+          "description": "Einsum expression string (e.g., 'ik,kj->ij')"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tensor_def"
+          },
+          "minItems": 1
+        },
+        "output": {
+          "$ref": "#/$defs/tensor_def"
+        }
+      },
+      "required": ["inputs", "output", "einsum"],
+      "additionalProperties": false
+    },
+    "tensor_def": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique identifier for the tensor"
+        },
+        "file": {
+          "type": "string",
+          "description": "Path to data file (.mtx)"
+        },
+        "format": {
+          "type": "array",
+          "description": "Fiber-tree style tensor format abstraction",
+          "items": {
+            "type": "string",
+            "enum": ["dense", "compressed"]
+          }
+        }
+      },
+      "required": ["name", "file", "format"],
+      "additionalProperties": false
+    }
+  }
+}

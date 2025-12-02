@@ -1,27 +1,23 @@
 #pragma once
 #include "backends/backend_interface.hpp"
-#include "finch_wrapper/generator.hpp"
-#include "finch_wrapper/executor.hpp"
-#include "finch_wrapper/comparator.hpp"
 
+#include <filesystem>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <iostream>
-#include <filesystem>
 
 using namespace std;
 namespace fs = std::filesystem;
 
 struct FinchBackend : public FuzzBackend {
-    bool generate_kernel(const vector<string>& mutated_kernel_file_names, const fs::path& output_dir) override;
+  bool generate_kernel(const vector<string> &mutated_kernel_file_names,
+                       const fs::path &output_dir) override;
 
-    int execute_kernel(const fs::path& kernelPath, const fs::path& outputDir) override;
+  int execute_kernel(const fs::path &kernelPath,
+                     const fs::path &outputDir) override;
 
-    bool compare_results(const string& refDir,
-                         const string& testDir) override;
+  bool compare_results(const string &refDir, const string &testDir) override;
 };
 
 // Plugin entry points
-extern "C" FuzzBackend* create_backend();
-extern "C" void destroy_backend(FuzzBackend* backend);
+extern "C" FuzzBackend *create_backend();
+extern "C" void destroy_backend(FuzzBackend *backend);

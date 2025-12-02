@@ -113,7 +113,7 @@ static bool ttx_tensor_data_save(const tsTensor& tensor, const tsTensorData& tsD
     {
         out << tensor.shape[i] << " ";
     }
-    out << "\n";
+    out << tsData.coordinate.size() << "\n";
 
     // save the actual tensor data
     for (size_t i = 0; i < tsData.coordinate.size(); i++)

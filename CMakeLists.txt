@@ -42,7 +42,8 @@ list(FILTER FUZZER_SRC EXCLUDE REGEX ".*/finch_wrapper/.*") # exclude other back
 # Build main executable (no backend linkage)
 # ------------------------------
 add_executable(${PROJECT_NAME} ${FUZZER_SRC})
-add_dependencies(${PROJECT_NAME} build_externals)
+# Removed hard dependency on build_externals for the main executable
+# add_dependencies(${PROJECT_NAME} build_externals)
 
 # Allow main executable to export symbols to plugins if needed
 set_target_properties(${PROJECT_NAME} PROPERTIES ENABLE_EXPORTS ON)
@@ -62,6 +63,10 @@ if(BUILD_TACO)
     )
 
     add_library(taco_wrapper SHARED ${TACO_SRC})
+
+    # TACO backend depends on building external TACO lib
+    add_dependencies(taco_wrapper build_externals)
+
     target_include_directories(taco_wrapper PUBLIC
         ${CMAKE_SOURCE_DIR}/include
         ${TACO_DIR}/include
@@ -91,7 +96,8 @@ if(BUILD_FINCH)
     file(GLOB_RECURSE FINCH_SRC
         ${CMAKE_SOURCE_DIR}/src/finch_wrapper/*.cpp
     )
-    add_library(finch_wrapper SHARED ${FINCH_SRC})
+    # Include core utils to allow using shared comparison logic
+    add_library(finch_wrapper SHARED ${FINCH_SRC} ${CMAKE_SOURCE_DIR}/src/tensure/utils.cpp)
     target_include_directories(finch_wrapper PUBLIC ${CMAKE_SOURCE_DIR}/include)
 endif()
 
