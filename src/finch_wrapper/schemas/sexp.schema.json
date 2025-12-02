@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finch-fuzz/schemas/sexp.schema.json",
+  "title": "S-expression Sparse Kernel Specification",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": {
+    "$ref": "#/$defs/kernel_def"
+  },
+  "$defs": {
+    "kernel_def": {
+      "type": "object",
+      "properties": {
+        "desc": {
+          "type": "string"
+        },
+        "iterators": {
+          "type": "array",
+          "description": "The type of iteration for each dimension",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["parallel", "reduction"]
+              }
+            },
+            "required": ["name", "type"],
+            "additionalProperties": false
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tensor_def"
+          },
+          "minItems": 1
+        },
+        "output": {
+          "$ref": "#/$defs/tensor_def"
+        },
+        "sexp": {
+          "$ref": "#/$defs/sexp"
+        }
+      },
+      "required": ["iterators", "inputs", "output", "sexp"],
+      "additionalProperties": false
+    },
+    "tensor_def": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique identifier for the kernel"
+        },
+        "file": {
+          "type": "string",
+          "description": "Path to data file (.mtx)"
+        },
+        "format": {
+          "type": "array",
+          "description": "Fiber-tree style tensor format abstraction",
+          "items": {
+            "type": "string",
+            "enum": ["dense", "compressed"]
+          }
+        },
+        "indexing_map": {
+          "type": "array",
+          "description": "Mapping of tensor dimensions to indexing schemes",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["name", "file", "format", "indexing_map"],
+      "additionalProperties": false
+    },
+    "sexp": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "string"
+            }
+          ],
+          "items": {
+            "$ref": "#/$defs/sexp"
+          },
+          "minItems": 2
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,7 @@
+[deps]
+Finch = "9177782c-1635-4eb9-9bfb-d9dfa25e6bce"
+LazyJSON = "fc18253b-5e1b-504c-a4a2-9ece4944c004"
+TensorMarket = "8b7d4fe7-0b45-4d0d-9dd8-5cc9b23b4b77"
+
+[compat]
+julia = "1.10 - 1.11"
