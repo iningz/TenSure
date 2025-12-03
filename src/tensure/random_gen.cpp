@@ -589,10 +589,10 @@ vector<string> mutate_equivalent_kernel(const fs::path& directory, const string&
     set<string> generated_signatures;
 
     fs::path full_filename = directory / original_kernel_filename;
+    mutated_kernel_files.push_back(full_filename.string());
     tsKernel orig_kernel;
     orig_kernel.loadJson(full_filename.string());
     generated_signatures.insert(get_kernel_signature(orig_kernel));
-
 
     random_device rd;
     mt19937 gen(rd());

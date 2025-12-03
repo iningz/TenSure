@@ -295,7 +295,7 @@ int main(int argc, char* argv[]) {
             }
             
             vector<string> mutated_file_names = mutate_equivalent_kernel(iter_dir, "kernel.json", 10);
-            LOG_INFO("Generated " + to_string(mutated_file_names.size()) + " Equivalent Mutants.");
+            LOG_INFO("Generated " + to_string(mutated_file_names.size() - 1) + " Equivalent Mutants.");
 
             // 3) Generate backend-specific kernel
             fs::path backend_kernel = iter_dir / "backend_kernel"; // plugin decides extension/format
@@ -390,7 +390,7 @@ int main(int argc, char* argv[]) {
                 fs::create_directories(except_dir);
             } catch (...) {}
         }
-        break;
+        // break;
     }
 
     cout << "Fuzzing loop finished (terminated=" << g_terminate << ")\n";
