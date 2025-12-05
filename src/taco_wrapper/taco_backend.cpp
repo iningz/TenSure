@@ -16,7 +16,7 @@ bool TacoBackend::generate_kernel(const vector<string>& mutated_kernel_file_name
 
             taco_wrapper::generate_taco_kernel(tskernel, taco_kernel_file, {(taco_kernel_file / "results.tns")});
         }
-        // fs::remove(p);
+        fs::remove(p);
     }
     
     return true;

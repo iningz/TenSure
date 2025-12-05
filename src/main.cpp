@@ -161,7 +161,7 @@ void archive_failure_case(const fs::path &dir_name, const fs::path &kernel_dir, 
 /**
  * @brief The core fuzzing task executed by a single worker thread.
  */
-void FuzzingJob(size_t iter, FuzzBackend* target_backend, FuzzBackend* ref_backend, std::mt19937::result_type seed_offset, fs::path& out_root, const std::string& tensor_file_format, const uint64_t executor_timeout_ms
+void FuzzingJob(size_t iter, FuzzBackend* target_backend, std::mt19937::result_type seed_offset, fs::path& out_root, const std::string& tensor_file_format, const uint64_t executor_timeout_ms
     ) {
     // 1. Create a thread-local RNG based on the global seed offset
     std::mt19937 local_rng(seed_offset + iter);
@@ -208,15 +208,26 @@ void FuzzingJob(size_t iter, FuzzBackend* target_backend, FuzzBackend* ref_backe
         vector<string> mutated_file_names = mutate_equivalent_kernel(iter_dir, "kernel.json", 10);
         LOG_INFO("Generated " + to_string(mutated_file_names.size() - 1) + " Equivalent Mutants.");
 
+        // Generate the backend specific kernel
+        fs::path backend_kernel = iter_dir / "backend_kernel";
+        fs::create_directories(backend_kernel);
+        bool gen_ok = target_backend->generate_kernel(mutated_file_names, backend_kernel);
+        if (!gen_ok) {
+            cerr << "generate_kernel failed for iter " << iter_id << "\n";
+            LOG_WARN("generate_kernel failed for iter " + iter_id + " to generate mutated backend kernels.");
+            return;
+        }
+
         // 4) Run reference executor (trusted) once to produce expected outputs
         uint64_t timeout = executor_timeout_ms; // Use CLI-defined timeout
         fs::path ref_out_dir = iter_data_dir / "ref_out";
         fs::create_directories(ref_out_dir);
         
         // Use the generated reference kernel path
-        string ref_kernel_filename = (iter_dir / "kernel.json").string();
+        // TODO: Make it generic
+        string ref_kernel_filename = (backend_kernel / "kernel/backend_kernel.cpp");
 
-        int ref_result = run_with_timeout(ref_backend, ref_kernel_filename, ref_out_dir.string(), timeout);
+        int ref_result = run_with_timeout(target_backend, ref_kernel_filename, "", timeout);
 
         if (ref_result != 0) {
             std::string message;
@@ -236,12 +247,10 @@ void FuzzingJob(size_t iter, FuzzBackend* target_backend, FuzzBackend* ref_backe
         string ref_out_file = (ref_out_dir / "results.tns").string();
         
         for (size_t mi = 1; mi < mutated_file_names.size() && !g_terminate; ++mi) {
-            fs::path mutant_path = iter_dir / mutated_file_names[mi]; // mutant file name
-            fs::path mutant_out_dir = mutant_path.parent_path() / ("mut_out_" + to_string(mi));
-            fs::create_directories(mutant_out_dir);
+            fs::path mutant_path = backend_kernel / ("kernel" + to_string(mi)) / "backend_kernel.cpp";
             
             // Run target backend on the mutated kernel
-            int result = run_with_timeout(target_backend, mutant_path.string(), mutant_out_dir.string(), timeout);
+            int result = run_with_timeout(target_backend, mutant_path.string(), "", timeout);
             
             if (result != 0) {
                 // Crashing bug or timeout
@@ -258,7 +267,8 @@ void FuzzingJob(size_t iter, FuzzBackend* target_backend, FuzzBackend* ref_backe
             } 
             
             // Compare the results for a wrong code bug
-            string mutant_out_file = mutant_out_dir / "results.tns";
+            string ref_out_file = (iter_data_dir / "ref_out" / "results.tns").string();
+            string mutant_out_file = mutant_path.parent_path() / "results.tns";
             bool equal = target_backend->compare_results(ref_out_file, mutant_out_file);
             
             if (!equal) {
@@ -288,7 +298,6 @@ void FuzzingJob(size_t iter, FuzzBackend* target_backend, FuzzBackend* ref_backe
 int main(int argc, char* argv[]) {
     // CLI: minimal arg parsing for backend selection
     string backend_so;
-    string ref_backend_so; // optional
     uint64_t executor_timeout_ms = 30'000;
     string tensor_file_format = "tns";
     // read CLI args simply
@@ -296,8 +305,6 @@ int main(int argc, char* argv[]) {
         string s = argv[i];
         if ((s == "--backend" || s == "-b") && i + 1 < argc) {
             backend_so = argv[++i];
-        } else if ((s == "--ref-backend") && i + 1 < argc) {
-            ref_backend_so = argv[++i];
         } else if ((s == "--timeout") && i + 1 < argc) {
             executor_timeout_ms = stoull(argv[++i]);
         } else if ((s == "--tensor-format" || s == "--tfmt") && i + 1 < argc) {
@@ -321,9 +328,6 @@ int main(int argc, char* argv[]) {
     if (backend_so.empty()) {
         if (const char* env = getenv("BACKEND_LIB")) backend_so = env;
     }
-    if (ref_backend_so.empty()) {
-        if (const char* env = getenv("REF_BACKEND_LIB")) ref_backend_so = env;
-    }
 
     if (backend_so.empty()) {
         cerr << "No backend specified. Use --backend /path/to/libbackend.so or set BACKEND_LIB env var\n";
@@ -336,7 +340,7 @@ int main(int argc, char* argv[]) {
 
     // Configurable parameters
     uint64_t seed = 42;
-    size_t max_iterations = 1000000;
+    size_t max_iterations = 1000;
     fs::path out_root = "fuzz_output";
     fs::path fail_dir = out_root / "failures";
     fs::path corpus_dir = out_root / "corpus";
@@ -371,29 +375,6 @@ int main(int argc, char* argv[]) {
     }
     FuzzBackend* target_backend = target_ph.inst;
 
-    // Load reference backend if provided, otherwise reference uses same backend instance
-    PluginHandle ref_ph;
-    FuzzBackend* ref_backend = nullptr;
-    bool ref_is_separate = false;
-    if (!ref_backend_so.empty()) {
-        try {
-            ref_ph = load_plugin(ref_backend_so);
-            ref_backend = ref_ph.inst;
-            ref_is_separate = true;
-            std::cout << "Loaded ref backend: " << ref_backend_so << "\n";
-            LOG_INFO("Loaded ref backend: " + ref_backend_so);
-        } catch (const std::exception &e) {
-            cerr << "Failed to load ref backend " << ref_backend_so << ": " << e.what() << "\n";
-            LOG_ERROR("Failed to load ref backend: " + ref_backend_so + ": " + e.what());
-            unload_plugin(target_ph);
-            return 1;
-        }
-    } else {
-        ref_backend = target_backend; // use same implementation as trusted one if none provided
-        LOG_WARN("No separate ref backend provided — using target backend as reference.");
-        std::cout << "No separate ref backend provided — using target backend as reference.\n";
-    }
-
     const size_t num_threads = std::thread::hardware_concurrency();
     size_t actual_threads = (num_threads == 0) ? 4 : num_threads;
     std::cout << "Starting Thread Pool with " << actual_threads << " workers.\n";
@@ -407,7 +388,7 @@ int main(int argc, char* argv[]) {
         // We capture shared read-only pointers and config by value/reference.
         // We pass the RNG seed offset (iter) instead of the RNG object itself.
         pool.enqueue([=, &out_root]() mutable {
-            FuzzingJob(iter, target_backend, ref_backend, rng(), out_root, tensor_file_format, executor_timeout_ms);
+            FuzzingJob(iter, target_backend, rng(), out_root, tensor_file_format, executor_timeout_ms);
         });
 
         // Throttle the producer if too far ahead (optional, but prevents massive queueing if workers are slow)
@@ -583,7 +564,6 @@ int main(int argc, char* argv[]) {
 
     // unload plugins
     unload_plugin(target_ph);
-    if (ref_is_separate) unload_plugin(ref_ph);
 
     return 0;
 }
