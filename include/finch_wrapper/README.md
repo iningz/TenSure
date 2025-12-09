@@ -4,7 +4,7 @@ Build backend-specific shared library: `libfinch_wrapper`:
 cmake .. -DBUILD_FINCH=ON
 ```
 
-```bach
+```bash
 make
 ```
 
