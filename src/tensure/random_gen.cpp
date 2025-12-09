@@ -102,10 +102,10 @@ static bool ttx_tensor_data_save(const tsTensor& tensor, const tsTensorData& tsD
 
     // save the header for the ttx
     string header = "%%MatrixMarket tensor coordinate real general";
-    if (tsData.coordinate[0].size() == 2)
-    {
-        header = "%%MatrixMarket matrix coordinate real general";
-    }
+    // if (tsData.coordinate[0].size() == 2)
+    // {
+    //     header = "%%MatrixMarket matrix coordinate real general";
+    // }
     out << header << "\n";
 
     // save the shape of the tensor

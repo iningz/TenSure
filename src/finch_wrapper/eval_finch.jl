@@ -121,7 +121,9 @@ function run_eval()
 
     if dump
         Base.remove_linenums!(program)
-        write(splitext(basename(spec_path))[1] * ".jl", join(program.args, "\n"))
+        output_path = joinpath(dirname(spec_path), splitext(basename(spec_path))[1] * ".jl")
+        write(output_path, join(program.args, "\n"))
+        println("Code dumped to $output_path")
     end
 
     eval(program)
